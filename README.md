@@ -1,5 +1,7 @@
 # SatQuery AI — SIH 26167 MVP
 
+> **Feature branch:** `/workspace` now uses the constrained raster-analysis implementation. See [CONSTRAINED_BRANCH.md](CONSTRAINED_BRANCH.md) for capabilities, local setup and limitations. The optional external explanation gateway requires separate server-side provider configuration. The original MVP documentation below describes the retained baseline.
+
 A static React + Vite satellite-imagery workspace for Smart India Hackathon. It uses deterministic TypeScript query routing and runs image analysis locally in a Web Worker. It needs no backend, database, account, API key, or paid service.
 
 ## Run

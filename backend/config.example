@@ -1,0 +1,13 @@
+# Copy to backend/.env locally. Never commit API keys.
+# BASE_URL includes /v1 when required by your compatible provider.
+# Labels are requested PRD profiles, not verified endpoint model identifiers.
+NEMOTRON_BASE_URL=
+NEMOTRON_API_KEY=
+NEMOTRON_MODEL=
+GLM_BASE_URL=
+GLM_API_KEY=
+GLM_MODEL=
+GEMMA_BASE_URL=
+GEMMA_API_KEY=
+GEMMA_MODEL=
+LLM_USE_TOOLS=true

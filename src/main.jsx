@@ -14,6 +14,7 @@ import '@fontsource/space-grotesk/latin-400.css';
 import '@fontsource/space-grotesk/latin-500.css';
 import '@fontsource/space-grotesk/latin-600.css';
 import './styles.css';
+import ConstrainedWorkspace from './constrained/Workspace.jsx';
 
 const icons={water:Waves,flood:Waves,vegetation:Trees,change:GitCompareArrows,urban:Building2};
 const suggestions=[['water','Identify water-covered regions.'],['vegetation','Estimate vegetation coverage.'],['change','What changed between these two images?'],['urban','Highlight built-up areas.']];
@@ -24,7 +25,7 @@ function Root(){
  useEffect(()=>{const onPop=()=>setPage(route());window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop);},[]);
  useEffect(()=>{document.title=page==='workspace'?'SatQuery AI · Satellite intelligence workspace':'SatQuery AI · Ask satellite imagery a question';window.scrollTo(0,0);},[page]);
  function navigate(path){window.history.pushState({},'',path);setPage(path==='/workspace'?'workspace':'landing');}
- return page==='workspace'?<Workspace onHome={()=>navigate('/')}/>:<Landing onLaunch={()=>navigate('/workspace')}/>;
+ return page==='workspace'?<ConstrainedWorkspace onHome={()=>navigate('/')}/>:<Landing onLaunch={()=>navigate('/workspace')}/>;
 }
 
 function Landing({onLaunch}){
