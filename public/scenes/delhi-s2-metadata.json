@@ -1,0 +1,41 @@
+{
+  "id": "S2A_T43RFM_20251126T053911_L2A",
+  "datetime": "2025-11-26T05:41:23.947Z",
+  "cloudCover": 6e-05,
+  "bboxWgs84": [
+    76.3,
+    28.35,
+    77.145,
+    28.78
+  ],
+  "bboxProjected": [
+    626892.9768096867,
+    3136661.096582811,
+    710243.6078145658,
+    3185499.500733989
+  ],
+  "crs": "EPSG:32643",
+  "width": 900,
+  "height": 527,
+  "sourceWidth": 8335,
+  "sourceHeight": 4884,
+  "metersPerSourcePixel": 10,
+  "scale": 0.0001,
+  "offset": -0.1,
+  "invalidScl": [
+    0,
+    1,
+    3,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "assets": {
+    "red": "/scenes/delhi-s2-red.u16",
+    "nir": "/scenes/delhi-s2-nir.u16",
+    "validity": "/scenes/delhi-s2-scl.u8"
+  },
+  "source": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/S2A_T43RFM_20251126T053911_L2A"
+}

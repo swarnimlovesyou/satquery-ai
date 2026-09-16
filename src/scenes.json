@@ -1,0 +1,80 @@
+[
+  {
+    "id": "flood",
+    "title": "Indus floodplain",
+    "location": "Sindh, Pakistan",
+    "description": "Monsoon flood expansion",
+    "tag": "FLOOD EVENT",
+    "sensor": "Landsat 8 / 9 · false color",
+    "dates": [
+      "04 Aug 2022",
+      "28 Aug 2022"
+    ],
+    "a": "flood-before",
+    "b": "flood-after",
+    "query": "Identify newly flooded regions and estimate the affected area.",
+    "kind": "flood",
+    "source": "https://science.nasa.gov/earth/earth-observatory/devastating-floods-in-pakistan-150279/",
+    "credit": "NASA Earth Observatory / Joshua Stevens · Landsat / USGS"
+  },
+  {
+    "id": "vegetation",
+    "title": "Delhi–Haryana cropland",
+    "location": "Delhi NCR & Haryana, India",
+    "description": "Measured vegetation from Red + NIR",
+    "tag": "SENTINEL-2 NDVI",
+    "sensor": "Sentinel-2A L2A · B04 Red + B08 NIR · 10 m",
+    "dates": [
+      "26 Nov 2025"
+    ],
+    "a": "delhi-s2-visual",
+    "query": "Map dense vegetation using NDVI.",
+    "kind": "vegetation",
+    "source": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/S2A_T43RFM_20251126T053911_L2A",
+    "credit": "Copernicus Sentinel-2 L2A · Element 84 Earth Search",
+    "spectral": {
+      "width": 900,
+      "height": 527,
+      "red": "/scenes/delhi-s2-red.u16",
+      "nir": "/scenes/delhi-s2-nir.u16",
+      "classification": "/scenes/delhi-s2-scl.u8",
+      "invalidClasses": [
+        0,
+        1,
+        3,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "scale": 0.0001,
+      "offset": -0.1,
+      "sensor": "Sentinel-2A L2A B04/B08"
+    },
+    "spatial": {
+      "metersPerSourcePixel": 10,
+      "sourceWidth": 8335,
+      "sourceHeight": 4884,
+      "provenance": "metadata"
+    }
+  },
+  {
+    "id": "urban",
+    "title": "Delhi urban expansion",
+    "location": "Delhi region, India",
+    "description": "Built-up cover and urban growth",
+    "tag": "URBAN GROWTH",
+    "sensor": "Landsat 5 / 8 · false color",
+    "dates": [
+      "05 Dec 1989",
+      "05 Jun 2018"
+    ],
+    "a": "delhi-before",
+    "b": "delhi-after",
+    "query": "Highlight built-up areas.",
+    "kind": "urban",
+    "source": "https://science.nasa.gov/earth/earth-observatory/urban-growth-of-new-delhi-92813/",
+    "credit": "NASA Earth Observatory / Lauren Dauphin · Landsat / USGS"
+  }
+]
