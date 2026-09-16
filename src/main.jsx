@@ -18,7 +18,78 @@ import './styles.css';
 const icons={water:Waves,flood:Waves,vegetation:Trees,change:GitCompareArrows,urban:Building2};
 const suggestions=[['water','Identify water-covered regions.'],['vegetation','Estimate vegetation coverage.'],['change','What changed between these two images?'],['urban','Highlight built-up areas.']];
 const steps=['Understanding query','Selecting analysis pipeline','Processing pixels in your browser','Generating measured spatial evidence'];
-function App(){
+function Root(){
+ const route=()=>window.location.pathname.replace(/\/+$/,'')==='/workspace'?'workspace':'landing';
+ const [page,setPage]=useState(route);
+ useEffect(()=>{const onPop=()=>setPage(route());window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop);},[]);
+ useEffect(()=>{document.title=page==='workspace'?'SatQuery AI · Satellite intelligence workspace':'SatQuery AI · Ask satellite imagery a question';window.scrollTo(0,0);},[page]);
+ function navigate(path){window.history.pushState({},'',path);setPage(path==='/workspace'?'workspace':'landing');}
+ return page==='workspace'?<Workspace onHome={()=>navigate('/')}/>:<Landing onLaunch={()=>navigate('/workspace')}/>;
+}
+
+function Landing({onLaunch}){
+ const capabilities=[
+  {icon:Waves,title:'Water & flood',text:'Estimate visible water and compare two dates to map newly water-covered pixels.'},
+  {icon:Trees,title:'Vegetation',text:'Run calibrated Sentinel-2 NDVI or an explicitly labelled RGB Excess Green estimate.'},
+  {icon:GitCompareArrows,title:'Temporal change',text:'Measure pixel differences, remove isolated noise, and inspect a change overlay.'},
+  {icon:Building2,title:'Built-up areas',text:'Screen RGB imagery now, with a browser-side ONNX adapter ready for segmentation models.'},
+ ];
+ return <div className="landing">
+  <header className="landing-nav">
+   <a href="/" className="brand" onClick={e=>e.preventDefault()}><div className="brand-mark"><Crosshair size={23}/></div><div><strong>SatQuery<span> AI</span></strong><small>Satellite questions, visible evidence</small></div></a>
+   <nav aria-label="Landing page navigation"><a href="#method">How it works</a><a href="#capabilities">Capabilities</a><a href="#datasets">Datasets</a></nav>
+   <button className="landing-nav-cta" onClick={onLaunch}>Open workspace <ArrowUpRight size={15}/></button>
+  </header>
+  <main className="landing-main">
+   <section className="landing-hero">
+    <div className="landing-hero-copy">
+     <div className="landing-kicker"><span/> SIH 26167 · WORKING PROTOTYPE</div>
+     <h1>Ask the image.<br/><em>See the evidence.</em></h1>
+     <p>SatQuery AI turns plain-language questions into measurable satellite-image analysis—water, vegetation, urban cover, and change over time—directly in your browser.</p>
+     <div className="landing-actions"><button className="landing-primary" onClick={onLaunch}>Explore the live workspace <ArrowRight size={17}/></button><a href="#method">See how it works <ArrowDown/></a></div>
+     <div className="landing-proof"><span><ShieldCheck size={16}/> Local processing</span><span><CheckCircle2 size={16}/> Real imagery</span><span><Cpu size={16}/> No paid API</span></div>
+    </div>
+    <div className="landing-visual" aria-label="Satellite analysis preview">
+     <div className="landing-map-frame">
+      <img src="/scenes/delhi-s2-visual.webp" alt="Sentinel-2 satellite view of Delhi NCR and Haryana"/>
+      <div className="landing-map-grid"/><div className="landing-scanline"/>
+      <span className="landing-image-label"><span/> SENTINEL-2 · DELHI NCR</span>
+      <span className="landing-local-label">PROCESSED LOCALLY</span>
+      <div className="landing-target target-one"><Crosshair size={21}/></div><div className="landing-target target-two"><Crosshair size={16}/></div>
+     </div>
+     <div className="landing-query-card"><Sparkles size={16}/><div><span>QUERY</span><strong>Map dense vegetation using NDVI.</strong></div><Check size={16}/></div>
+     <div className="landing-result-card"><div><span>DETECTED TASK</span><strong>Vegetation coverage</strong></div><b>NDVI</b><small>Red + NIR</small></div>
+    </div>
+   </section>
+
+   <section className="landing-strip" aria-label="Product facts"><div><strong>4</strong><span>analysis routes</span></div><div><strong>100%</strong><span>browser-side processing</span></div><div><strong>3</strong><span>real sample scenarios</span></div><div><strong>0</strong><span>images uploaded to a server</span></div></section>
+
+   <section className="landing-section method-section" id="method">
+    <div className="landing-section-heading"><span>HOW IT WORKS</span><h2>From a question to spatial evidence.</h2><p>A controlled workflow keeps every result inspectable. You can see the selected method, tune its thresholds, and verify the mask against the source image.</p></div>
+    <div className="method-steps">
+     <article><span>01</span><div className="method-icon"><FileImage size={20}/></div><h3>Choose imagery</h3><p>Explore a bundled satellite scene or add your own aligned PNG, JPG, or WebP images.</p></article>
+     <article><span>02</span><div className="method-icon"><Sparkles size={20}/></div><h3>Ask naturally</h3><p>The deterministic router identifies water, vegetation, urban, flood, or temporal-change intent.</p></article>
+     <article><span>03</span><div className="method-icon"><Layers size={20}/></div><h3>Inspect the result</h3><p>Review the binary mask, overlay, pixel coverage, selected method, and execution trace.</p></article>
+    </div>
+   </section>
+
+   <section className="landing-section capability-section" id="capabilities">
+    <div className="landing-section-heading split"><div><span>ANALYSIS CAPABILITIES</span><h2>Four questions. Four transparent workflows.</h2></div><p>Every mask is calculated from the selected pixels at run time. Threshold controls let you test how the result changes.</p></div>
+    <div className="capability-grid">{capabilities.map(({icon:Icon,title,text},i)=><article key={title}><div><Icon size={21}/><span>0{i+1}</span></div><h3>{title}</h3><p>{text}</p><button onClick={onLaunch}>Try in workspace <ArrowUpRight size={14}/></button></article>)}</div>
+   </section>
+
+   <section className="landing-section dataset-section" id="datasets">
+    <div className="landing-section-heading split"><div><span>REAL EARTH OBSERVATION DATA</span><h2>Built to demonstrate, grounded in source imagery.</h2></div><p>Each sample retains its sensor, date, location, and source. SatQuery recomputes the analysis in your browser whenever you run it.</p></div>
+    <div className="landing-datasets">{scenes.map((scene,i)=>{const Icon=icons[scene.kind];return <article key={scene.id}><div className="landing-dataset-image"><img src={`/scenes/${scene.b||scene.a}.webp`} alt={`${scene.title} satellite imagery`}/><span>{scene.tag}</span></div><div className="landing-dataset-copy"><Icon size={19}/><div><span>{scene.sensor}</span><h3>{scene.title}</h3><p>{scene.location} · {scene.dates.join(' → ')}</p></div><a href={scene.source} target="_blank" rel="noreferrer" aria-label={`Open source for ${scene.title}`}><ArrowUpRight size={16}/></a></div></article>;})}</div>
+   </section>
+
+   <section className="landing-cta"><div><span>READY TO EXPLORE?</span><h2>Bring a satellite image.<br/>Leave with evidence.</h2></div><button onClick={onLaunch}>Launch SatQuery AI <ArrowRight size={18}/></button></section>
+  </main>
+  <footer className="landing-footer"><span><Crosshair size={14}/> SatQuery AI <span className="footer-divider">/</span> SIH 26167</span><span>Built for explainable, browser-side remote-sensing analysis.</span><button onClick={onLaunch}>Open workspace <ArrowUpRight size={13}/></button></footer>
+ </div>;
+}
+
+function Workspace({onHome}){
  const [sceneId,setSceneId]=useState('flood'),[query,setQuery]=useState(scenes[0].query),[result,setResult]=useState(null);
  const [view,setView]=useState('original'),[overlay,setOverlay]=useState(true),[opacity,setOpacity]=useState(55),[compare,setCompare]=useState(50),[zoom,setZoom]=useState(1);
  const [busy,setBusy]=useState(false),[step,setStep]=useState(0),[processingMessage,setProcessingMessage]=useState(''),[error,setError]=useState(''),[modal,setModal]=useState(null),[picker,setPicker]=useState(false),[inputMode,setInputMode]=useState('samples');
@@ -85,7 +156,7 @@ function App(){
  const stats=result?.stats,Icon=tool?icons[result.kind]:Crosshair;
 
  return <div className="app-shell">
-  <header className="topbar"><a href="#" className="brand" onClick={e=>{e.preventDefault();setModal(null);}}><div className="brand-mark"><Crosshair size={24}/></div><div><strong>SatQuery<span> AI</span></strong><small>Natural-language intelligence for satellite imagery</small></div></a><nav aria-label="Main navigation"><button className={!modal?'nav-active':''} onClick={()=>setModal(null)}>Workspace</button><button onClick={()=>setModal('architecture')}>Architecture <ArrowUpRight size={13}/></button><button onClick={()=>setModal('technology')}>Technology</button></nav><div className="prototype"><span/> SIH 26167 Prototype</div></header>
+  <header className="topbar"><a href="/" className="brand" onClick={e=>{e.preventDefault();onHome();}}><div className="brand-mark"><Crosshair size={24}/></div><div><strong>SatQuery<span> AI</span></strong><small>Natural-language intelligence for satellite imagery</small></div></a><nav aria-label="Main navigation"><button className={!modal?'nav-active':''} onClick={()=>setModal(null)}>Workspace</button><button onClick={()=>setModal('architecture')}>Architecture <ArrowUpRight size={13}/></button><button onClick={()=>setModal('technology')}>Technology</button></nav><div className="prototype"><span/> SIH 26167 Prototype</div></header>
   <main>
    <div className="workspace-heading"><div><div className="eyebrow"><span className="live-dot"/> EARTH OBSERVATION WORKSPACE</div><h1>A question. A clearer picture.</h1><p>Explore satellite imagery with spatial evidence you can see.</p></div><button className="quiet-button" onClick={()=>setModal('guide')}><CircleHelp size={16}/> Demo guide</button></div>
    <div className="workspace-grid">
@@ -130,4 +201,4 @@ function formatArea(m2,km2){return km2>=.01?km2.toFixed(2)+' km²':Math.round(m2
 function saveFile(blob,name){const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function Modal({type,close}){const ref=useRef();useEffect(()=>{const prev=document.activeElement;ref.current.showModal();return()=>prev?.focus();},[]);return <dialog ref={ref} className="modal" onCancel={close} onClick={e=>{if(e.target===e.currentTarget)close();}}><button className="modal-close icon-button" aria-label="Close dialog" onClick={close}><X size={19}/></button>{type==='architecture'?<><div className="eyebrow">SYSTEM DESIGN</div><h2>One query. The right workflow.</h2><p className="modal-intro">A controlled task router connects imagery to specialist analysis and measurable spatial evidence.</p><div className="architecture"><div className="arch-node"><Sparkles size={18}/><strong>User query</strong><small>Natural-language question + satellite imagery</small></div><ArrowDown/><div className="arch-node highlighted"><Network size={18}/><strong>Natural-language understanding & task router</strong><small>Validate inputs · choose tools · sequence execution</small><span>LIVE MVP: deterministic keyword routing</span></div><ArrowDown/><div className="arch-branches"><div><Eye size={20}/><strong>Optical analysis</strong><small>Water · vegetation · built-up</small><span className="live-label">Prototype available</span></div><div><Waves size={20}/><strong>SAR analysis</strong><small>Radar & optical–SAR fusion</small><span>Future integration</span></div><div><GitCompareArrows size={20}/><strong>Temporal analysis</strong><small>Before / after comparison</small><span className="live-label">Prototype available</span></div></div><ArrowDown/><div className="arch-node"><Layers size={18}/><strong>Remote-sensing models / tools</strong><small>Today: calibrated NDVI, local pixel masks and optional ONNX inference</small><span>Future: adapted segmentation & change models</span></div><ArrowDown/><div className="arch-node"><Crosshair size={18}/><strong>Geospatial measurements</strong><small>Pixel coverage · optional area from user-provided resolution</small></div><ArrowDown/><div className="arch-node highlighted"><CheckCircle2 size={18}/><strong>Evidence-grounded response</strong><small>Visual overlays · measurements · execution trace · report</small></div></div><div className="future-note"><strong>Next integrations</strong><p>More multispectral indices, SAR imagery, optical–SAR fusion, segmentation models, change-detection models, geospatial reasoning and LLM-based tool orchestration.</p></div><div className="modal-disclaimer">This first-round presentation prototype does not yet include domain fine-tuning, SAR fusion or validated model evaluation required for final judging.</div></>:type==='technology'?<><div className="eyebrow">TECHNOLOGY</div><h2>A small stack. A clear path forward.</h2><p className="modal-intro">The deployed MVP runs without a backend, paid API or remote model dependency.</p><div className="stack-list">{[['Frontend','React + Vite','Implemented','Component-based workspace and static build'],['Visualization','Canvas + image overlays','Implemented','Mask, overlay, zoom and before / after slider; Leaflet is optional'],['Query routing','Deterministic keyword router','Implemented','Visible, controlled tool selection'],['Sample analysis','Live browser-side processors','Implemented','NASA and Copernicus imagery reprocessed on every run'],['Local processing','Canvas + TypeScript Web Worker','Implemented','Samples and uploads remain on your device'],['Remote sensing','Sentinel-2 Red/NIR NDVI','Implemented','Calibrated reflectance, SCL quality masking and 10 m area metadata'],['AI models','ONNX Runtime Web adapter','Planned','User-loadable semantic segmentation; model still optional'],['Agent layer','LLM tool calling','Planned','Controlled specialist orchestration'],['Deployment','Vercel static frontend','Ready','Optional backend can be added without blocking sample demos']].map(([label,title,status,detail])=><div key={label}><span>{label}</span><div><strong>{title}</strong><p>{detail}</p></div><span className={status==='Implemented'?'stack-live':'stack-planned'}>{status}</span></div>)}</div><div className="future-note"><strong>Dataset roadmap</strong><p>BigEarthNet.txt for remote-sensing adaptation; VRSBench and RSVQA for single-image evaluation; CDVQA for temporal question answering.</p></div></>:<><div className="eyebrow">PRESENTATION GUIDE</div><h2>Your 60-second satellite demo.</h2><p className="modal-intro">Start with the flood scene, ask a question, and let the evidence tell the story.</p><ol className="guide-steps"><li><span>01</span><div><strong>Select the Indus floodplain sample</strong><p>Real Landsat imagery from 4 and 28 August 2022.</p></div></li><li><span>02</span><div><strong>Ask about newly flooded regions</strong><p>Press Analyze imagery. Watch the router select FloodDelta.</p></div></li><li><span>03</span><div><strong>Inspect the spatial evidence</strong><p>Toggle Original, Mask and Overlay. Move the Compare slider.</p></div></li><li><span>04</span><div><strong>Explain the measurement</strong><p>Show pixel coverage and the execution trace, then export a report.</p></div></li><li><span>05</span><div><strong>Switch to calibrated NDVI or urban cover</strong><p>The vegetation scene uses real Sentinel-2 B04 Red and B08 NIR reflectance.</p></div></li></ol><div className="modal-disclaimer">The vegetation sample uses calibrated Sentinel-2 NDVI. RGB uploads use visual estimates; physical area appears only when resolution metadata is available.</div><div className="source-links"><strong>Imagery credits</strong><a href={scenes[0].source} target="_blank" rel="noreferrer">NASA · Devastating Floods in Pakistan <ArrowUpRight size={13}/></a><a href={scenes[1].source} target="_blank" rel="noreferrer">Earth Search · Sentinel-2 Delhi NDVI source <ArrowUpRight size={13}/></a><a href={scenes[2].source} target="_blank" rel="noreferrer">NASA · Urban Growth of New Delhi <ArrowUpRight size={13}/></a></div></>}</dialog>;}
 function ArrowDown(){return <div className="arch-arrow">↓</div>;}
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(<Root/>);
