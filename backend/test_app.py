@@ -8,6 +8,15 @@ import asyncio
 import time
 
 class GatewayTests(unittest.TestCase):
+    def test_automatic_route_falls_back_only_to_another_free_model(self):
+        with patch.dict(os.environ,{'OPENROUTER_API_KEY':'test-key'}), patch('backend.app.CompatibleProvider.generate',new_callable=AsyncMock) as generate:
+            generate.side_effect=[httpx.ReadTimeout('timeout'),{'answer':'Measured result','model':'poolside/laguna-xs-2.1:free','toolCalls':[]}]
+            request={**self.request,'provider':'auto'}
+            response=self.client.post('/api/chat',json=request)
+            self.assertEqual(response.status_code,200)
+            self.assertTrue(response.json()['fallbackUsed'])
+            self.assertEqual(generate.await_count,2)
+
     def test_real_adapter_transport_and_read_only_tool_roundtrip(self):
         captured=[]
         responses=[{'choices':[{'message':{'role':'assistant','content':None,'tool_calls':[{'id':'t1','type':'function','function':{'name':'get_water_analysis','arguments':'{}'}}]}}]}, {'choices':[{'message':{'content':'Measured water coverage is 25%.'}}]}]

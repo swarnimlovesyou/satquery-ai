@@ -13,8 +13,8 @@ from pydantic import BaseModel, Field
 
 load_dotenv(Path(__file__).with_name('.env'))
 app = FastAPI(title='SatQuery explanation gateway')
-LABELS = {'nemotron': 'Nemotron 3.5 Lightning · free', 'glm': 'GLM 5.2 · free', 'gemma': 'Gemma 4 26B · free'}
-FREE_MODELS = {'nemotron': 'nvidia/nemotron-3.5-lightning:free', 'glm': 'z-ai/glm-5.2:free', 'gemma': 'google/gemma-4-26b-a4b-it:free'}
+LABELS = {'auto': 'Automatic · free models', 'ling': 'Ling Flash · free', 'laguna': 'Laguna XS · free', 'nemotron': 'Nemotron · free', 'glm': 'GLM · free', 'gemma': 'Gemma · free'}
+FREE_MODELS = {'auto': 'inclusionai/ling-3.0-flash-vl:free', 'ling': 'inclusionai/ling-3.0-flash-vl:free', 'laguna': 'poolside/laguna-xs-2.1:free', 'nemotron': 'nvidia/nemotron-3.5-lightning:free', 'glm': 'z-ai/glm-5.2:free', 'gemma': 'google/gemma-4-26b-a4b-it:free'}
 _catalog = {'expires': 0, 'models': {}}
 
 async def verified_free_model(model):
@@ -56,6 +56,15 @@ means 7.26% of valid pixels pass NDVI > 0.55. It does not mean threshold 7.26 or
 In bitemporal class analysis, coverage is the union of lost and gained pixels; use beforeCoverage
 and afterCoverage for the two dates. When asked where change is greatest, use largestQuadrant
 as image-relative direction, not verified geographic direction. Do not infer unmeasured causes.'''
+SYSTEM += '''
+Answer in plain language in at most 120 words unless the user explicitly requests detail.
+Use one or two short paragraphs; avoid markdown headings and repetitive limitation lists.
+Use the provided plainLanguageSummary as the numerical baseline, then answer the specific question.
+For definitions: NDVI=(NIR-Red)/(NIR+Red); NDWI=(Green-NIR)/(Green+NIR);
+NDBI=(SWIR-NIR)/(SWIR+NIR). NIR/SWIR alone is not NDWI. Never invent missing bands.
+NDVI is a dimensionless index; percentage coverage measures pixels passing its threshold, not NDVI intensity.
+If a requested task is unsupported, explain that briefly using availableTasks and existing evidence.
+Do not claim to have seen raw imagery; you receive only metadata and computed evidence.'''
 
 
 class Message(BaseModel):
@@ -64,7 +73,7 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    provider: str = Field(pattern='^(nemotron|glm|gemma)$')
+    provider: str = Field(pattern='^(auto|ling|laguna|nemotron|glm|gemma)$')
     question: str = Field(min_length=1, max_length=2000)
     context: dict
     history: list[Message] = Field(default_factory=list, max_length=6)
@@ -101,9 +110,10 @@ class CompatibleProvider:
         calls = []
         async with httpx.AsyncClient(timeout=45, follow_redirects=False) as client:
             for iteration in range(3):
-                payload = {'model': self.model, 'messages': messages, 'temperature': 0.1, 'max_tokens': 1800,
-                           'provider': {'max_price': {'prompt': 0, 'completion': 0}},
-                           'reasoning': {'enabled': False}}
+                payload = {'model': self.model, 'messages': messages, 'temperature': 0.1, 'max_tokens': 700,
+                           'provider': {'max_price': {'prompt': 0, 'completion': 0}}}
+                if 'reasoning' in entry.get('supported_parameters', []) and not (entry.get('reasoning') or {}).get('mandatory'):
+                    payload['reasoning'] = {'enabled': False}
                 # Some compatible endpoints do not support tools; disable via server config.
                 if 'tools' in entry.get('supported_parameters', []) and os.getenv('LLM_USE_TOOLS', 'true').lower() == 'true':
                     payload.update(tools=specs, tool_choice='none' if iteration == 2 else 'auto')
@@ -150,9 +160,18 @@ async def chat(request: ChatRequest):
     if not base.startswith('https://'):
         raise HTTPException(503, 'Provider base URL must use HTTPS')
     try:
-        return await asyncio.wait_for(CompatibleProvider(base, key, model).generate(request.question, request.context, request.history), timeout=90)
+        candidates = [FREE_MODELS['ling'], FREE_MODELS['laguna']] if request.provider == 'auto' else [model]
+        last_error = None
+        for candidate in candidates:
+            try:
+                result = await asyncio.wait_for(CompatibleProvider(base, key, candidate).generate(request.question, request.context, request.history), timeout=25)
+                result['fallbackUsed'] = candidate != candidates[0]
+                return result
+            except (httpx.HTTPError, HTTPException, KeyError, ValueError, TypeError, IndexError, TimeoutError) as error:
+                last_error = error
+        raise last_error
     except TimeoutError:
-        raise HTTPException(504, 'The free model did not finish within 90 seconds. The AI request was attempted; try another free model. Analysis is preserved.')
+        raise HTTPException(504, 'The available free models did not respond in time. Analysis is preserved; retry the explanation shortly.')
     except httpx.TimeoutException:
         raise HTTPException(504, 'The free model timed out. The AI request was sent, but no answer arrived in time. Try another free model; analysis is preserved.')
     except httpx.HTTPStatusError as error:

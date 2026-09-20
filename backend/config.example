@@ -1,4 +1,4 @@
 # Copy to backend/.env. Never commit credentials.
 OPENROUTER_API_KEY=
-LLM_USE_TOOLS=true
+LLM_USE_TOOLS=false
 # Model IDs are restricted to verified free variants in backend/app.py.

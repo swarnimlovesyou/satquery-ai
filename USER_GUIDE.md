@@ -1,37 +1,33 @@
-# SatQuery: quick start
+# SatQuery: image analysis workflow
 
-1. Open http://127.0.0.1:5173/workspace.
-2. Click **Indus floodplain**, **Delhi–Haryana cropland**, or **Delhi urban expansion**.
-3. Read **Analysis ready**. The images, mode, method and default threshold are selected and calculated automatically. No alignment checkbox or band setup is needed for these demos.
-4. Click **Explain with free AI** if you want a model explanation. Analysis is already complete, even if the free model is unavailable. Choose **Local summary** at the top to use the deterministic explanation instead.
+1. Select a sample or upload PNG, JPEG, WebP or GeoTIFF imagery.
+2. For a before/after pair, drag the divider directly over the image. Loading images only prepares the preview; it does not create a result.
+3. Choose the supported analysis you want and click **Start analysis**.
+4. Read the plain-language result computed from the pixels. Expand measurements for counts, thresholds, before/after coverage, loss/gain and physical area when known.
+5. Click **Explain with free AI**, or type a follow-up and click **Ask**. Automatic mode uses Ling Flash with a free-only fallback. The response shows the actual model. Local summary is explicitly non-LLM.
 
-## Which demo?
+## Samples and measurements
 
-- **Indus floodplain / Delhi urban expansion:** visual before/after change in published false-colour pictures. This measures changed pixels, not verified flood area or building growth. The visible warning identifies unverified geographic alignment.
-- **Delhi–Haryana cropland:** actual Sentinel-2 Red/NIR NDVI. The two analytical bands produce a grayscale preview with an overlay; they are not three visible RGB bands.
+- Indus floodplain and Delhi urban expansion are real published Landsat false-colour composite pairs. They support visual change analysis. A changed-pixel percentage is not automatically a flooded-area or building-growth percentage.
+- Delhi–Haryana uses real Sentinel-2 Red/NIR bands for NDVI. The default 0.2 cutoff estimates vegetation coverage. The preview is grayscale because these two analytical bands do not form a visible RGB image.
+- Sample source links and acquisition dates are shown in the viewer. No generated image or hardcoded measurement is used as an application result.
 
-## Your own files
+## Uploads
 
-Upload one image for automatic statistics (or NDVI when Red/NIR are identified). For two dates, select **Bitemporal** and upload both. Comparison runs when both files are present. Unreferenced pairs are compared under an explicitly labelled same-extent assumption; they are not automatically registered. Known incompatible CRS/extents are rejected.
+Single images default to statistics, or vegetation when identified spectral bands support it. Pairs default to visual/intensity change. Only supported methods are offered. Unknown band names do not block basic statistics: expand metadata and assign documented band roles only when you want a spectral index. NDVI needs Red/NIR; NDWI Green/NIR; NDBI SWIR/NIR. For unlabelled radar data select SAR and its intensity band. Calibration must come from the data supplier.
 
-**Explore another analysis** only offers methods supported by the current inputs. Changing the task automatically runs it. Unlabelled GeoTIFFs show statistics immediately. To unlock spectral indices, expand metadata → advanced band mapping and assign bands from the supplier documentation: Red/NIR for NDVI, Green/NIR for NDWI, SWIR/NIR for NDBI. Missing wavelengths are never guessed. Select SAR for an unlabelled radar image and choose its intensity band. Scale/offset must match the data calibration.
+Pairs without geographic metadata are provisional comparisons assuming the same area, orientation and crop; they are not automatically registered. Known incompatible CRS/extents are rejected. Large images are analysed on a reduced grid up to 900 pixels on the longest side.
 
-## Optional controls
+## Controls
 
-| Control | What it changes |
-| --- | --- |
-| Visible layer | Original, mask, overlay, before/after, loss/gain, or signed difference |
-| RGB / grayscale | Display only; RGB is disabled without three mapped display bands |
-| Comparison slider / opacity | Display only, not the calculated result |
-| Zoom / pan | View only; it does not select a new analysis region |
-| Sensitivity / noise cleanup | Selected pixels and coverage; click **Recompute** after adjusting |
-| All measurements | Coverage, counts, means, before/after, percentage-point change, spatial loss/gain |
-| Export evidence | Download measurements and metadata as JSON |
+- **Before/after divider, opacity, zoom and display bands:** viewing only.
+- **Task, threshold and noise cleanup:** affect the analysis. Changing these clears the previous result; click Start analysis again.
+- **Masks/overlays:** actual selected pixels. Class loss/gain and generic visual change are different measurements.
+- **Export evidence:** JSON with the computed results and metadata.
+- **AI:** receives structured evidence, not the raster. It can explain and answer follow-ups but cannot infer unsupported land-cover facts. The deterministic result remains visible if the service fails.
 
-Masks and statistics use a reduced grid of up to 900 pixels on the longest side. Coverage is a pixel percentage, not water depth. Model explanations may contain mistakes; computed evidence stays visible.
+## Local startup and verification
 
-## AI status
+Run `npm run dev` and, in the configured Python environment, `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`. The ignored `backend/.env` holds the OpenRouter key. Free-only model IDs, catalog checks and zero-price caps prevent paid fallback.
 
-**Explain with free AI** and **Ask** send structured measurements and metadata, not raster pixels. **Local summary** sends no AI request. Gateway status and request progress are separate. Free quota, timeout or provider errors preserve analysis; no paid fallback is enabled.
-
-Local startup: `npm run dev` plus `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000` in a Python environment with `backend/requirements.txt` installed. API credentials remain in ignored `backend/.env`.
+`npm test`, `npm run typecheck`, `npm run build`, `python -m unittest backend.test_app`, and `npm run test:e2e` cover local functionality. `npm run test:live` additionally makes real free-model calls with the sample's actual measured evidence.

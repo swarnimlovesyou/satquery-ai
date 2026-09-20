@@ -5,7 +5,7 @@ export type Task = 'statistics' | 'vegetation' | 'water' | 'builtup' | 'change' 
 export interface Metadata {
  filename:string; width:number; height:number; bands:number; dataType:string; crs:string|null;
  bounds:number[]|null; resolution:number[]|null; transform:number[]|null; nodata:number|null;
- bandInfo:Record<string,unknown>[]; category:Category; units:string; source?:string;
+ bandInfo:Record<string,unknown>[]; category:Category; units:string; source?:string; acquired?:string; location?:string; composite?:string;
 }
 export interface Dataset { metadata:Metadata; width:number; height:number; bands:Float32Array[]; valid:Uint8Array }
 export interface Mapping { red:number; green:number; blue:number; nir:number; swir:number; intensity:number; scale:number; offset:number; category:Category }
