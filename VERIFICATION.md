@@ -23,6 +23,6 @@ Verified with a real local browser:
 
 ## External-service limitation
 
-A real browser-to-Nemotron request was observed, but one live run returned HTTP 502 from the gateway. Prior runs have returned real answers. A connected/configured gateway does not establish free-model capacity or guarantee an answer. Do not describe all live AI flows as passing merely because local or mocked tests passed.
+A real browser-to-Nemotron request was observed, but one live run returned HTTP 502 from the gateway and the final live run timed out. Prior runs have returned real answers. Mobile instructions and page-exception checks passed after the timeout. A connected/configured gateway does not establish free-model capacity or guarantee an answer. Do not describe all live AI flows as passing merely because local or mocked tests passed.
 
 The UI now displays gateway state and request progress separately, reports provider timeouts/HTTP errors/empty answers, and provides explicit local-summary mode. No paid fallback is allowed.

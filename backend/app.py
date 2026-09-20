@@ -1,5 +1,6 @@
 """Explanation gateway. Rasters and API credentials never cross in either direction."""
 import json
+import asyncio
 import os
 import time
 from pathlib import Path
@@ -149,7 +150,9 @@ async def chat(request: ChatRequest):
     if not base.startswith('https://'):
         raise HTTPException(503, 'Provider base URL must use HTTPS')
     try:
-        return await CompatibleProvider(base, key, model).generate(request.question, request.context, request.history)
+        return await asyncio.wait_for(CompatibleProvider(base, key, model).generate(request.question, request.context, request.history), timeout=90)
+    except TimeoutError:
+        raise HTTPException(504, 'The free model did not finish within 90 seconds. The AI request was attempted; try another free model. Analysis is preserved.')
     except httpx.TimeoutException:
         raise HTTPException(504, 'The free model timed out. The AI request was sent, but no answer arrived in time. Try another free model; analysis is preserved.')
     except httpx.HTTPStatusError as error:
