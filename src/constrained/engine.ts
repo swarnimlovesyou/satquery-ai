@@ -58,6 +58,8 @@ export function score(d:Dataset,m:Mapping,task:Task){
 }
 export function analyze(a:Dataset,b:Dataset|null,o:Options){
  if(!Number.isFinite(o.threshold))throw new Error('Threshold must be a finite number.');
+ if(o.task==='change'&&o.threshold<0)throw new Error('Change threshold cannot be negative.');
+ if(o.task==='sar'&&(o.mappingA.category!=='sar'||(b&&o.mappingB.category!=='sar')))throw new Error('SAR intensity analysis requires SAR inputs. Set the input category first.');
  if(o.task==='change'&&!b)throw new Error('Change detection requires T1 and T2.');
  const warnings=b?compatibility(a,b,o.acceptUnreferenced):[];
  if(b&&o.mappingA.category!==o.mappingB.category)throw new Error('Temporal analysis requires matching input categories; optical/SAR fusion is outside this MVP.');

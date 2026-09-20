@@ -6,7 +6,9 @@ This implementation is isolated on `feature/constrained-analysis`. The existing 
 
 Run `npm ci` then `npm run dev`. Open `/workspace`. Deterministic analysis and local evidence summaries work without a backend.
 
-For optional external explanations, create a Python virtual environment, install `backend/requirements.txt`, copy `backend/config.example` to `backend/.env`, and enter the chosen provider's actual HTTPS base URL, API key and exact model ID. Run `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`. Vite proxies `/api` locally. Provider profile labels are configurable integration targets, not assertions that those model IDs are available from any particular vendor. API keys stay server-side; only metadata, computed statistics and chat text are sent to the provider.
+For external explanations, install `backend/requirements.txt` in a Python virtual environment, copy `backend/config.example` to `backend/.env`, and set `OPENROUTER_API_KEY`. Run `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`. Vite proxies `/api` locally. The model selector uses Nemotron 3.5 Lightning, GLM 5.2 and Gemma 4 free variants. API keys stay server-side; only metadata, computed statistics and chat text are sent to OpenRouter.
+
+Free-only protection: fixed `:free` model IDs, current catalog pricing validation, zero prompt/completion price caps, and no paid fallback. Quota/capacity errors remain visible and preserve computed results. Free endpoints can be unavailable; switching models does not guarantee capacity.
 
 ## Implemented
 
@@ -23,7 +25,7 @@ The browser runs deterministic TypeScript in a worker, using geotiff.js for deco
 
 No reprojection, automatic registration, atmospheric correction, cloud classification, per-band calibration coefficients, advanced SAR processing, learned building segmentation or scene captioning is added here. Unreferenced pairs require explicit alignment confirmation. False-colour sample composites are marked unknown, preventing automatic RGB land-cover estimates. Index thresholds and RGB proxies are screening methods, not validated classifications or confidence probabilities.
 
-External provider transport is implemented and gateway behavior is tested with mocks; live model responses require provider configuration and have not been validated. Static hosting alone supports the browser analysis and local explanations; external chat additionally needs the optional Python service routed at `/api`. No new deployment configuration has been applied to production.
+External provider transport is implemented. Nemotron returned a live grounded response during verification; GLM and Gemma returned free-tier quota/capacity errors. Gateway guards are also tested with mocks. Static hosting alone supports the browser analysis and local explanations; external chat additionally needs the optional Python service routed at `/api`. No new deployment configuration has been applied to production.
 
 ## Verification
 

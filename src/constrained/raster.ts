@@ -26,6 +26,9 @@ export function inferMapping(d:Dataset):Mapping{
  const m={...defaultMapping,category:d.metadata.category,green:d.bands.length>1?1:0,blue:d.bands.length>2?2:0};
  const roles=['red','green','blue','nir','swir'] as const;
  d.metadata.bandInfo.forEach((info,i)=>{const text=String(info.DESCRIPTION||info.description||info.name||'').toLowerCase();for(const role of roles)if(new RegExp(`\\b${role}\\b`).test(text))m[role]=i;});
+ const descriptions=d.metadata.bandInfo.map(info=>JSON.stringify(info)).join(' ').toLowerCase();
+ if(/\b(vv|vh|hh|hv|sigma0|sigma nought|backscatter)\b/.test(descriptions))m.category='sar';
+ else if(m.nir>=0||m.swir>=0)m.category='multispectral';
  return m;
 }
 export function renderRaster(d:Dataset,m:Mapping,display:'rgb'|'band'='rgb',selected=0):Uint8ClampedArray{

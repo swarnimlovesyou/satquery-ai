@@ -7,6 +7,11 @@ import { decodeTiff } from '../src/constrained/raster.ts';
 function data(bands:number[][]):Dataset{return {width:bands[0].length,height:1,bands:bands.map(b=>Float32Array.from(b)),valid:Uint8Array.from(bands[0],()=>1),metadata:{filename:'fixture',width:bands[0].length,height:1,bands:bands.length,dataType:'float32',crs:'EPSG:32643',bounds:[0,0,bands[0].length*10,10],resolution:[10,-10],transform:[10,0,0,0,-10,10],nodata:null,bandInfo:[],category:'multispectral',units:'metres'}};}
 const mapping:Mapping={...defaultMapping,category:'multispectral',red:0,nir:1,green:2,swir:3};
 const options:Options={task:'vegetation',threshold:.5,morphology:false,acceptUnreferenced:false,mappingA:mapping,mappingB:mapping};
+test('rejects optical inputs for SAR and negative absolute-difference thresholds',()=>{
+ const d=data([[1,2],[3,4]]);
+ assert.throws(()=>analyze(d,null,{...options,task:'sar'}),/requires SAR inputs/);
+ assert.throws(()=>analyze(d,d,{...options,task:'change',threshold:-1}),/cannot be negative/);
+});
 test('vegetation transitions distinguish spatial loss, gain, net pp and relative percent',()=>{
  const a=data([[1,1,1,1],[4,4,4,1]]),b=data([[1,1,1,1],[4,1,1,4]]),r=analyze(a,b,options);
  assert.equal(r.summary.beforeCoverage,75);assert.equal(r.summary.afterCoverage,50);assert.equal(r.summary.netPercentagePoints,-25);

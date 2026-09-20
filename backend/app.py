@@ -1,6 +1,7 @@
 """Explanation gateway. Rasters and API credentials never cross in either direction."""
 import json
 import os
+import time
 from pathlib import Path
 from typing import Protocol
 
@@ -11,7 +12,23 @@ from pydantic import BaseModel, Field
 
 load_dotenv(Path(__file__).with_name('.env'))
 app = FastAPI(title='SatQuery explanation gateway')
-LABELS = {'nemotron': 'Nemotron 3.5 Lite', 'glm': 'GLM 5.2', 'gemma': 'Gemma 4'}
+LABELS = {'nemotron': 'Nemotron 3.5 Lightning · free', 'glm': 'GLM 5.2 · free', 'gemma': 'Gemma 4 26B · free'}
+FREE_MODELS = {'nemotron': 'nvidia/nemotron-3.5-lightning:free', 'glm': 'z-ai/glm-5.2:free', 'gemma': 'google/gemma-4-26b-a4b-it:free'}
+_catalog = {'expires': 0, 'models': {}}
+
+async def verified_free_model(model):
+    if not model.endswith(':free'):
+        raise HTTPException(403, 'Only free model variants are allowed. Paid fallback is disabled.')
+    if time.monotonic() >= _catalog['expires']:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get('https://openrouter.ai/api/v1/models')
+            response.raise_for_status()
+            _catalog['models'] = {item['id']: item for item in response.json()['data']}
+            _catalog['expires'] = time.monotonic() + 300
+    entry = _catalog['models'].get(model)
+    if not entry or any(float(entry.get('pricing', {}).get(k, -1)) != 0 for k in ('prompt', 'completion')):
+        raise HTTPException(503, 'This model is not currently verified free. Choose another free model.')
+    return entry
 TOOLS = {
     'get_image_metadata': 'metadata', 'get_band_information': 'bandMappings',
     'get_analysis_summary': 'analysis', 'get_single_image_statistics': 'analysis',
@@ -28,6 +45,16 @@ Generic visual difference is not vegetation loss. SAR thresholding is not land-c
 Say when the available task cannot answer the question and name the required analysis.
 Mention missing metadata and limitations relevant to the question. Respond concisely.
 Do not claim an RGB proxy is NDVI/NDWI/NDBI, or that coverage is elevation or depth.'''
+SYSTEM += '''
+Field definitions: threshold is a cutoff in the method's units, never a coverage percentage.
+coverage, beforeCoverage, afterCoverage, lostCoverage, gainedCoverage, lowCoverage and
+highCoverage are percentages of valid pixels. Never compare a coverage percentage to an index
+threshold or call a coverage percentage a threshold. NDVI lowCoverage counts 0.2 < NDVI <= 0.55;
+highCoverage counts NDVI > 0.55, before optional mask cleanup. At threshold 0.55, coverage 7.26
+means 7.26% of valid pixels pass NDVI > 0.55. It does not mean threshold 7.26 or threshold 72.83.
+In bitemporal class analysis, coverage is the union of lost and gained pixels; use beforeCoverage
+and afterCoverage for the two dates. When asked where change is greatest, use largestQuadrant
+as image-relative direction, not verified geographic direction. Do not infer unmeasured causes.'''
 
 
 class Message(BaseModel):
@@ -47,8 +74,7 @@ class LLMProvider(Protocol):
 
 
 def configuration(name):
-    prefix = name.upper()
-    return tuple(os.getenv(f'{prefix}_{suffix}', '').strip() for suffix in ('BASE_URL', 'API_KEY', 'MODEL'))
+    return ('https://openrouter.ai/api/v1', os.getenv('OPENROUTER_API_KEY', '').strip(), FREE_MODELS[name])
 
 
 def tool_result(name, context):
@@ -66,6 +92,7 @@ class CompatibleProvider:
         self.url, self.key, self.model = base_url.rstrip('/') + '/chat/completions', key, model
 
     async def generate(self, question, context, history):
+        entry = await verified_free_model(self.model)
         messages = [{'role': 'system', 'content': SYSTEM}]
         messages += [m.model_dump() for m in history]
         messages += [{'role': 'user', 'content': json.dumps({'question': question, 'evidence': context}, allow_nan=False)}]
@@ -73,11 +100,17 @@ class CompatibleProvider:
         calls = []
         async with httpx.AsyncClient(timeout=45, follow_redirects=False) as client:
             for iteration in range(3):
-                payload = {'model': self.model, 'messages': messages, 'temperature': 0.1, 'max_tokens': 700}
+                payload = {'model': self.model, 'messages': messages, 'temperature': 0.1, 'max_tokens': 1800,
+                           'provider': {'max_price': {'prompt': 0, 'completion': 0}},
+                           'reasoning': {'enabled': False}}
                 # Some compatible endpoints do not support tools; disable via server config.
-                if os.getenv('LLM_USE_TOOLS', 'true').lower() == 'true':
+                if 'tools' in entry.get('supported_parameters', []) and os.getenv('LLM_USE_TOOLS', 'true').lower() == 'true':
                     payload.update(tools=specs, tool_choice='none' if iteration == 2 else 'auto')
                 response = await client.post(self.url, headers={'Authorization': f'Bearer {self.key}'}, json=payload)
+                if response.status_code == 429:
+                    raise HTTPException(429, 'Free-model quota or capacity reached. Try another free model or retry later. No paid fallback was used.')
+                if response.status_code in (401, 402):
+                    raise HTTPException(503, 'OpenRouter rejected the key or account request. Check the server key and free-model account limits.')
                 response.raise_for_status()
                 message = response.json()['choices'][0]['message']
                 if not message.get('tool_calls'):
