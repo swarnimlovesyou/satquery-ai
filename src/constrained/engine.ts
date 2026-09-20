@@ -27,7 +27,7 @@ export function compatibility(a:Dataset,b:Dataset,accepted=false){
  const x=a.metadata,y=b.metadata,warnings:string[]=[];
  if(x.crs&&y.crs&&x.crs!==y.crs)throw new Error('Incompatible CRS. Reproject and co-register the images before comparison.');
  if(x.bounds&&y.bounds&&x.crs&&y.crs){const tolerance=Math.max(...(x.resolution||[0]).map(Math.abs),...(y.resolution||[0]).map(Math.abs),1e-8);if(x.bounds.some((v,i)=>Math.abs(v-y.bounds![i])>tolerance))throw new Error('Geographic bounds differ. Crop both images to the same extent first.');}
- else {if(!accepted)throw new Error('Spatial alignment cannot be verified. Confirm that both images cover the same aligned area.');warnings.push('Alignment was confirmed by the user; geographic correspondence cannot be verified.');}
+ else {if(!accepted)throw new Error('Both images are loaded, but their geographic alignment cannot be verified. Tick the alignment confirmation beside the uploads, then run again.');warnings.push('Alignment was confirmed by the user; geographic correspondence cannot be verified.');}
  if(x.width!==y.width||x.height!==y.height)warnings.push('Dimensions differ: T1 is resampled to the T2 analysis grid using nearest-neighbour sampling.');
  if(x.bands!==y.bands)warnings.push('Band counts differ. Check that the selected band roles and units match.');
  if(x.resolution&&y.resolution&&x.resolution.some((v,i)=>Math.abs(v-y.resolution![i])>1e-8))warnings.push('Pixel resolutions differ; statistics use a shared reduced analysis grid.');

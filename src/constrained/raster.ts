@@ -32,10 +32,10 @@ export function inferMapping(d:Dataset):Mapping{
  return m;
 }
 export function renderRaster(d:Dataset,m:Mapping,display:'rgb'|'band'='rgb',selected=0):Uint8ClampedArray{
- const indices=display==='band'||m.category==='sar'||m.category==='unknown'?[selected,selected,selected]:[m.red,m.green,m.blue];
+ const indices=display==='band'?[selected,selected,selected]:[m.red,m.green,m.blue];
  if(indices.some(i=>i<0||i>=d.bands.length))throw new Error('Choose existing display bands.');
  const ranges=indices.map(i=>statistics(d.bands[i],d.valid));
- const nativeRgb=d.metadata.category==='rgb'&&d.metadata.dataType==='uint8';
+ const nativeRgb=d.metadata.dataType==='uint8';
  const out=new Uint8ClampedArray(d.width*d.height*4);
  for(let p=0;p<d.valid.length;p++){for(let c=0;c<3;c++){const v=d.bands[indices[c]][p],{min,max}=ranges[c];out[p*4+c]=nativeRgb?v:min===null||max===null||max===min?127:(v-min)/(max-min)*255;}out[p*4+3]=d.valid[p]?255:0;}
  return out;

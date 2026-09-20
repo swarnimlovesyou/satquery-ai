@@ -150,6 +150,12 @@ async def chat(request: ChatRequest):
         raise HTTPException(503, 'Provider base URL must use HTTPS')
     try:
         return await CompatibleProvider(base, key, model).generate(request.question, request.context, request.history)
-    except (httpx.HTTPError, KeyError, ValueError, TypeError):
+    except httpx.TimeoutException:
+        raise HTTPException(504, 'The free model timed out. The AI request was sent, but no answer arrived in time. Try another free model; analysis is preserved.')
+    except httpx.HTTPStatusError as error:
+        raise HTTPException(502, f'The free-model service returned HTTP {error.response.status_code}. No paid fallback was used; try another free model.')
+    except (KeyError, ValueError, TypeError, IndexError):
+        raise HTTPException(502, 'The free model returned an empty or unsupported answer. The AI request was sent. Try another free model; analysis is preserved.')
+    except httpx.HTTPError:
         # Never expose provider request headers, tokens, or raw response bodies.
         raise HTTPException(502, 'The model provider is unavailable or returned an unsupported response. Computed analysis remains available.')

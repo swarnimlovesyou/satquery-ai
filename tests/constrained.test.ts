@@ -3,10 +3,16 @@ import assert from 'node:assert/strict';
 import { writeArrayBuffer } from 'geotiff';
 import { analyze, defaultMapping, statistics, compatibility } from '../src/constrained/engine.ts';
 import type { Dataset, Mapping, Options } from '../src/constrained/engine.ts';
-import { decodeTiff } from '../src/constrained/raster.ts';
+import { decodeTiff, renderRaster } from '../src/constrained/raster.ts';
 function data(bands:number[][]):Dataset{return {width:bands[0].length,height:1,bands:bands.map(b=>Float32Array.from(b)),valid:Uint8Array.from(bands[0],()=>1),metadata:{filename:'fixture',width:bands[0].length,height:1,bands:bands.length,dataType:'float32',crs:'EPSG:32643',bounds:[0,0,bands[0].length*10,10],resolution:[10,-10],transform:[10,0,0,0,-10,10],nodata:null,bandInfo:[],category:'multispectral',units:'metres'}};}
 const mapping:Mapping={...defaultMapping,category:'multispectral',red:0,nir:1,green:2,swir:3};
 const options:Options={task:'vegetation',threshold:.5,morphology:false,acceptUnreferenced:false,mappingA:mapping,mappingB:mapping};
+test('RGB display preserves composite colours independently of analysis category',()=>{
+ const d=data([[200],[80],[20]]);d.metadata.category='unknown';d.metadata.dataType='uint8';
+ const m={...defaultMapping,category:'unknown' as const};
+ assert.deepEqual([...renderRaster(d,m,'rgb')],[200,80,20,255]);
+ assert.deepEqual([...renderRaster(d,m,'band',1)],[80,80,80,255]);
+});
 test('rejects optical inputs for SAR and negative absolute-difference thresholds',()=>{
  const d=data([[1,2],[3,4]]);
  assert.throws(()=>analyze(d,null,{...options,task:'sar'}),/requires SAR inputs/);

@@ -1,12 +1,32 @@
 import os
 import unittest
 from unittest.mock import patch, AsyncMock
+import httpx
 from fastapi.testclient import TestClient
-from backend.app import app, tool_result, verified_free_model, _catalog
+from backend.app import app, tool_result, verified_free_model, _catalog, CompatibleProvider
 import asyncio
 import time
 
 class GatewayTests(unittest.TestCase):
+    def test_real_adapter_transport_and_read_only_tool_roundtrip(self):
+        captured=[]
+        responses=[{'choices':[{'message':{'role':'assistant','content':None,'tool_calls':[{'id':'t1','type':'function','function':{'name':'get_water_analysis','arguments':'{}'}}]}}]}, {'choices':[{'message':{'content':'Measured water coverage is 25%.'}}]}]
+        async def post(url, **kwargs):
+            captured.append(kwargs['json'])
+            return httpx.Response(200,json=responses.pop(0),request=httpx.Request('POST',url))
+        with patch('backend.app.verified_free_model',new_callable=AsyncMock,return_value={'supported_parameters':['tools']}), patch('backend.app.httpx.AsyncClient.post',side_effect=post):
+            result=asyncio.run(CompatibleProvider('https://openrouter.ai/api/v1','test-key','test:free').generate('Explain',{'analysis':{'task':'water','coverage':25}},[]))
+        self.assertEqual(result['toolCalls'],['get_water_analysis'])
+        self.assertEqual(len(captured),2)
+        self.assertEqual(captured[0]['provider']['max_price'],{'prompt':0,'completion':0})
+        self.assertTrue(any(m['role']=='tool' and '25' in m['content'] for m in captured[1]['messages']))
+
+    def test_timeout_is_reported_without_losing_evidence(self):
+        with patch.dict(os.environ,{'OPENROUTER_API_KEY':'test-key'}), patch('backend.app.CompatibleProvider.generate',new_callable=AsyncMock,side_effect=httpx.ReadTimeout('timeout')):
+            response=self.client.post('/api/chat',json=self.request)
+            self.assertEqual(response.status_code,504)
+            self.assertIn('request was sent',response.json()['detail'])
+
     def test_paid_model_rejected_before_network(self):
         with self.assertRaises(Exception) as error:
             asyncio.run(verified_free_model('paid/model'))
