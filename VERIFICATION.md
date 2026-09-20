@@ -1,28 +1,43 @@
-# Verification — 20 September 2026
+# Verification: simplified workspace
 
-This report distinguishes local deterministic checks from external model availability.
+## Scope and reproducibility
 
-## Automated checks
+Run `npm test`, `npm run typecheck`, `npm run build`, and `python -m unittest backend.test_app`.
+With frontend on port 5173 and backend on 8000, run `npm run test:e2e`. The browser suite uses installed Edge on Windows, or Playwright Chromium elsewhere (`npx playwright install chromium`). It saves screenshots and results under ignored `test-results/`. It mocks external model responses for repeatable transport/error tests; those are not evidence of live provider availability.
 
-- 19 TypeScript tests pass: formulas, masks, temporal counts, nodata, GeoTIFF decode, input validation, RGB rendering and question routing.
-- 8 Python tests pass: missing configuration, forbidden evidence, matching read-only tools, provider adapter dispatch, rejection of paid/nonzero-price models, timeout reporting, and a mocked HTTP tool-call round trip with zero-price routing.
-- TypeScript compilation and Vite production build pass.
+20 TypeScript tests and 8 Python tests pass. Browser cases cover the exposed functional areas below. This is a feature coverage matrix, not a claim of exhaustive testing on all satellite formats or combinations.
 
-## Browser checks
+| Area | Checked |
+| --- | --- |
+| Demo entry | All three samples produce automatic results in one click; no alignment/category gates |
+| Capabilities | Unknown imagery gives immediate statistics; unavailable tasks hidden; raw band roles not guessed |
+| Uploads | PNG, JPEG, WebP, single/multiband TIFF; corrupt and unsupported file recovery |
+| RGB analysis | Statistics, Excess Green, water heuristic and built-up proxy |
+| Spectral analysis | Known 50% NDVI/NDWI/NDBI fixtures; mapped bands |
+| Temporal analysis | Known 50% generic change; spectral loss/gain with zero net coverage change |
+| SAR | Selected-band intensity, scale/offset calibration, negative-value threshold |
+| Validation | CRS/extent mismatches, nodata/zero denominator, missing bands, unreferenced assumption warnings |
+| Viewer | T1/T2, side-by-side, slider, binary mask, overlay, before/after class masks, loss/gain, signed difference |
+| Controls | Opacity, zoom, pan, reset, sensitivity, noise cleanup and stale-result invalidation |
+| Evidence | Metadata, transform, band statistics/histograms and JSON export |
+| Modes | Single/bitemporal changes recalculate using the correct images |
+| Chat | Local mode; actual request payload; mock external answer; one-click explanation; quota failure preserving results |
+| Connection | Offline status and retry recovery; provider settings |
+| Layout | Desktop and 390px mobile; no horizontal overflow or uncaught browser exceptions; landing navigation |
+| Backend | Free-price guards, bounded timeout, constrained evidence tools, mocked HTTP tool round trip |
 
-Verified with a real local browser:
+## Real free-model checks
 
-- RGB flood sample has coloured pixels; alignment confirmation enables change analysis.
-- Synthetic GeoTIFF upload exposes metadata; known mean is 25 and known paired change is 50%.
-- Corrupt TIFF errors preserve the page; real Sentinel NDVI still works afterward.
-- Gateway offline state is visible. Retry reconnects without reloading the workspace.
-- Alignment errors block chat before an API call and explain the required action.
-- Run analysis sends no AI request. Explicit local-summary mode sends no AI request.
-- External-model Ask sends `/api/chat` with computed evidence and without credentials/raw rasters.
-- A simulated HTTP 429 is shown clearly while computed analysis remains visible.
+Each configured model was called once through the local gateway with synthetic measurements:
 
-## External-service limitation
+- Nemotron: HTTP 504, timed out.
+- GLM: HTTP 429, free quota/capacity.
+- Gemma: HTTP 429, free quota/capacity.
 
-A real browser-to-Nemotron request was observed, but one live run returned HTTP 502 from the gateway and the final live run timed out. Prior runs have returned real answers. Mobile instructions and page-exception checks passed after the timeout. A connected/configured gateway does not establish free-model capacity or guarantee an answer. Do not describe all live AI flows as passing merely because local or mocked tests passed.
+Live AI availability **did not pass**. Deterministic analysis and repeatable integration checks passed independently. No paid fallback was used.
 
-The UI now displays gateway state and request progress separately, reports provider timeouts/HTTP errors/empty answers, and provides explicit local-summary mode. No paid fallback is allowed.
+## First-time-user walkthrough
+
+Reviewed desktop and mobile screenshots and exercised fresh sessions. Results appear after one demo click, ahead of technical controls. A concise result and an explanation button form the primary path; metadata, statistics and tuning are expandable. Sample presets reset tuning, and unsuitable question suggestions/tasks are filtered. This was an agent walkthrough, not a study with human participants.
+
+Remaining limits: unnamed spectral/SAR bands need real metadata or manual mapping; geographic registration is not automatic; free providers can be slow/unavailable. Those limits are displayed rather than bypassed or presented as validated science.

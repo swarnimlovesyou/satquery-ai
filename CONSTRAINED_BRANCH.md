@@ -23,7 +23,7 @@ Free-only protection: fixed `:free` model IDs, current catalog pricing validatio
 
 The browser runs deterministic TypeScript in a worker, using geotiff.js for decoding; this implementation does not use OpenCV or Rasterio. Analysis grids are capped at 900 pixels on the longest side, so counts and fine features reflect that reduced grid. TIFF upload is capped at 150 MB, 16 bands and 60 million source band samples. Statistics are not full-resolution statistics.
 
-No reprojection, automatic registration, atmospheric correction, cloud classification, per-band calibration coefficients, advanced SAR processing, learned building segmentation or scene captioning is added here. Unreferenced pairs require explicit alignment confirmation. False-colour sample composites are marked unknown, preventing automatic RGB land-cover estimates. Index thresholds and RGB proxies are screening methods, not validated classifications or confidence probabilities.
+No reprojection, automatic registration, atmospheric correction, cloud classification, per-band calibration coefficients, advanced SAR processing, learned building segmentation or scene captioning is added here. Unreferenced pairs produce a provisional same-extent visual comparison with an explicit unverified-alignment warning; no checkbox gate is used. False-colour sample composites are marked unknown, preventing automatic RGB land-cover estimates. Index thresholds and RGB proxies are screening methods, not validated classifications or confidence probabilities.
 
 External provider transport is implemented. Nemotron returned a live grounded response during verification; GLM and Gemma returned free-tier quota/capacity errors. Gateway guards are also tested with mocks. Static hosting alone supports the browser analysis and local explanations; external chat additionally needs the optional Python service routed at `/api`. No new deployment configuration has been applied to production.
 
@@ -31,4 +31,4 @@ External provider transport is implemented. Nemotron returned a live grounded re
 
 `npm test`, `npm run typecheck`, `npm run build`, and `python -m unittest backend.test_app`.
 
-Tests cover index formulas, transitions, nodata, incompatible inputs, SAR, real binary TIFF decoding, missing provider configuration, evidence validation and read-only tool restrictions. Browser checks cover the Sentinel-2 sample, paired processing and mobile layout.
+Tests cover index formulas, transitions, nodata, incompatible inputs, SAR, real binary TIFF decoding, missing provider configuration, evidence validation and read-only tool restrictions. Run `npm run test:e2e` with frontend/backend running for the complete repeatable browser matrix. See VERIFICATION.md for coverage and live-model failures.
